@@ -1,4 +1,4 @@
-//演示管道的特性
+//体会管道特性
 #include<stdio.h>
 #include<unistd.h>
 #include<sys/wait.h>
