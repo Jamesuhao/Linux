@@ -1,4 +1,4 @@
-//认识匿名管道基本操作，并且体会管道的各种特性
+//认识匿名管道基本操作，体会管道的各种特性
 #include<stdio.h>
 #include<unistd.h>
 #include<stdlib.h>
