@@ -1,4 +1,4 @@
-//实现一个minishell
+//实现minishell
 #include<stdio.h>
 #include<stdlib.h>
 #include<unistd.h>
