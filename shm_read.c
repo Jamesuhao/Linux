@@ -12,7 +12,7 @@ int main()
     key_t key - ftok("./",PROJ_ID);
     int shmid = shmget(key,32,IPC_CREAT|0664);
     */
-    //多使用宏，方便
+    //使用宏来创建
     int shmid = shmget(IPC_KEY,32,IPC_CREAT|0664);
     if(shmid < 0)
     {
