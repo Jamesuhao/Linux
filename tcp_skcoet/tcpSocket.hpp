@@ -17,6 +17,14 @@ class tcpSocket
     tcpSocket()
       :_sockfd(-1)
     { }
+    int GetFd()
+    {
+      return _sockfd;
+    }
+    void SetFd(int fd)
+    {
+      _sockfd = fd;
+    }
     //1.创建套接字
     bool Socket()
     {

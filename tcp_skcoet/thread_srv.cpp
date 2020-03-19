@@ -1,7 +1,37 @@
 //使用封装的tcpSocket类实例化对象实现tcp服务端程序
 #include<iostream>
+#include<pthread.h>
 #include"tcpSocket.hpp"
 
+
+void* thr_start(void *arg)
+{
+  long fd=(long)arg;
+  tcpSocket cli_sock;
+  cli_sock.SetFd(fd);
+  while(1)
+  {
+    std::string buf;
+    if(cli_sock.Recv(&buf)==false)
+    {
+      cli_sock.Close();
+      pthread_exit(NULL);
+    }
+    std::cout<<"client：say："<<&buf[0]<<std::endl;
+    std::cout<<"server say：";
+    fflush(stdout);
+    buf.clear();
+    std::cin>>buf;
+    if(cli_sock.Send(buf)==false)
+    {
+      cli_sock.Close();
+      pthread_exit(NULL);
+    }
+  }
+  //当循环退出时则关闭套接字
+  cli_sock.Close();
+  return NULL;
+}
 int main(int argc,char *argv[])
 {
   if(argc!=3)
@@ -31,23 +61,12 @@ int main(int argc,char *argv[])
     }
     std::cout<<"new connect：["<<cli_ip.c_str()<<"："<<cli_port<<"]"<<std::endl;
     //通过新获取的通信套接字与客户端进行通信
-    std::string buf;
-    if(cli_sock.Recv(&buf)==false)
-    {
-      cli_sock.Close();//通信套接字接收数据出错，关闭通信套接字
-      continue;
-    }
-    std::cout<<"client：["<<&cli_ip[0]<<":"<<cli_port<<"] say："<<&buf[0]<<std::endl;
-    std::cout<<"server  say：";
-    fflush(stdout);
-    buf.clear();
-    std::cin>>buf;
-
-    if(cli_sock.Send(buf)==false)
-    {
-      cli_sock.Close();
-      continue;
-    }
+    pthread_t tid;
+    //将通信套接字当作参数传递给线程，让线程与数据进行通信
+    //cli_sock是一个局部变量，循环结束，这个资源就会被被释放掉
+    pthread_create(&tid,NULL,thr_start,(void*)cli_sock.GetFd());
+    pthread_detach(tid);//不关心线程返回值，分离线程，退出后自动释放资源
+    //主线程不能关闭cli_sock套接字，因为多线程是共用描述符的
   }
   listen_sock.Close();
   return 0;
