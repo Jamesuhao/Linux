@@ -20,12 +20,15 @@ class chatServer
     chatServer()
       :_udpSockfd(-1)
       ,_udpPort(UDP_PORT)
-    {
-      
-    }
+      ,_msgPool(NULL)
+    {  }
     ~chatServer()
     {
-
+      if(_msgPool)
+      {
+        delete _msgPool;
+        _msgPool=NULL;
+      }
     }
     void InitServer()//初始化UDP服务
     {
@@ -47,28 +50,39 @@ class chatServer
         perror("bind error");
         exit(2);
       }
+      //初始化数据池
+      _msgPool=new MsgPool();
+      if(!_msgPool)
+      {
+        perrror("Create MsgPool error");
+        exit(3);
+      }
     }
     void Start()//初始化生产和消费线程
     {
       pthread_t tid;
       for(int i=0;i<THREAD_COUNT;i++)
       {
-        int ret = pthread_create(&tid,NULL,PrductMsStart,(void*)this);
+        //创建生产者线程
+        int ret = pthread_create(&tid,NULL,ProductMsStart,(void*)this);
         if(ret < 0)
         {
-          perror("pthread error");
-          exit(3);
+          perror("pthread_create product error");
+          exit(4);
         }
+        //创建消费者线程
         ret = pthread_create(&tid,NULL,ConsumeMsStart,(void*)this);
         if(ret < 0)
         {
-          perror("pthread error");
-          exit(3);
+          perror("pthread_create consumer error");
+          exit(4);
         }    
       }
     }
-    static void* PrductMsStart(void *arg)
+    //生产者入口函数
+    static void* ProductMsStart(void *arg)
     {
+      //线程分离
       pthread_detach(pthread_self());
       chatServer* cs = (chatServer*)arg;
       while(1)
@@ -78,8 +92,10 @@ class chatServer
       }
       return NULL;
     }
+    //消费者入口函数
     static void* ConsumeMsStart(void* arg)
     {
+      //线程分离
       pthread_detach(pthread_self());
       while(1)
       {
@@ -94,10 +110,7 @@ class chatServer
       return NULL;
     }
   private:
-    int _udpSockfd;
-    int _udpPort;
-    //数据池对象
-    MsgPool _msgPool;
+    //接收数据
     void RecvMsg()
     {
       char buf[1024]={0};
@@ -111,25 +124,38 @@ class chatServer
       else
       {
           //正常逻辑
+        std::string msg;
+        msg.assign(buf,recvsize);
+        _msgPool->PushMsgToPool(msg);
           
       }
     }
-      void SendMsg(const std::string& msg,struct sockaddr_in& cli_addr,socklen_t len)
+    //发送数据
+    void SendMsg(const std::string& msg,struct sockaddr_in& cli_addr,socklen_t len)
+    {
+      int sendsize = sendto(_udpSockfd,msg.c_str(),msg.size(),0,(struct sockaddr*)&cli_addr,len);
+      if(sendsize<0)
       {
-        int sendsize = sendto(_udpSockfd,msg.c_str(),msg.size(),0,(struct sockaddr*)&cli_addr,len);
-        if(sendsize<0)
-        {
-          perror("sendto error ");
-        }
-        else 
-        {
-          //成功
-        }
+        perror("sendto error ");
       }
-      void BroadcastMsg()
+      else 
       {
-        //获取要给哪一个用户进行发送
-        //获取发送的内容
-        //SendMsg();
+        //成功
       }
+    }
+    //获取发送信息以及进行发送
+    void BroadcastMsg()
+    {
+        
+      //获取要给哪一个用户进行发送
+      //获取发送的内容
+      //SendMsg();
+      std::string msg;
+      _msgPool->PopMsgFromPool(&msg);
+    }
+  private:
+    int _udpSockfd;
+    int _udpPort;
+    //数据池对象
+    MsgPool* _msgPool;
 };

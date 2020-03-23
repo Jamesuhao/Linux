@@ -2,6 +2,7 @@
 #include<iostream>
 #include<pthread.h>
 #include<queue>
+#include<string>
 #define MSG_POOL_SIZE 1024
 class MsgPool
 {
@@ -47,9 +48,9 @@ class MsgPool
     {
       if(_MsgQue.size()==_Capacity)
       {
-        return false;
+        return true;
       }
-      return true;
+      return false;
     }
   private:
     std::queue<std::string>_MsgQue;
