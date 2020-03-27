@@ -37,7 +37,11 @@ int main(int argc,char *argv[])
     std::stringstream header;
     header<<"Content-Length: "<<body.size()<<"\r\n";
     header<<"Content-Ttpe: text/html\r\n";
-    std::string first_line="HTTP/1.1 200 OK\r\n";
+    header<<"Location: http://www.baidu.com/\r\n";
+    //std::string first_line="HTTP/1.1 200 OK\r\n";
+    //std::string first_line="HTTP/1.1 302 Found\r\n";
+    //std::string first_line="HTTP/1.1 302 Found\r\n";
+    std::string first_line="HTTP/1.1 500 Internal Server Error\r\n";
     cli_sock.Send(first_line);
     cli_sock.Send(header.str());
     cli_sock.Send(blank);
