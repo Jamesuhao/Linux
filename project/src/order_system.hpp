@@ -66,6 +66,7 @@ extern void MysqlDestroy(MYSQL* mysql);
     }
     return true; 
   }
+
   class DishTable  // 操作数据库中的菜单数据
   {
     public:

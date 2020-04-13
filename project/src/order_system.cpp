@@ -1,91 +1,233 @@
 #include "order_system.hpp"
+#include"httplib.h"
+
+_order_sys::DishTable *dish_table;
+_order_sys::OrderTable *order_table;
+void InsertDish(const httplib::Request &req,httplib::Response &rsp)
+{
+  //req.body中保存的正文---正文就是菜品信息的josn字符串
+  Json::Value dish_val;
+
+  Json::Reader reader;
+  //reader.parse(json数据传，解析后的Json::Value对象);
+  bool ret = reader.parse(req.body,dish_val);
+  if(ret == false)
+  {
+    std::cout<<"InsertDish parse json data failed!"<<std::endl;
+    rsp.status=400;
+  }
+  ret = dish_table->Insert(dish_val);//将菜品信息插入到数据库
+  if(ret==false)
+  {
+    std::cout<<"InsertDish insert to db failed!"<<std::endl;
+    rsp.status=500;
+    return;
+  }
+  rsp.status=200;
+  return;
+}
+void DeleteDish(const httplib::Request &req,httplib::Response &rsp)
+{
+  //path = "/dish/100";
+  //匹配/dish/数字这种格式的字符串
+  //matches[1]中保存所有匹配的指定字符串，matches[0]保存原始字符串
+  int dish_id = std::stoi(req.matches[1]);
+  
+  bool ret = dish_table->Delete(dish_id);
+  if(ret == false)
+  {
+    std::cout<<"DeleteDish delete dish from db failed!"<<std::endl;
+    rsp.status=500;
+    return;
+  }
+  rsp.status=200;
+  return;
+}
+void UpdataDish(const httplib::Request &req,httplib::Response &rsp)
+{
+  //新的菜品信息保存在请求的正文中 --- 即就是req.body中
+  Json::Value dish_val;
+
+  Json::Reader reader;
+  bool ret = reader.parse(req.body,dish_val);
+  if(ret==false)
+  {
+    std::cout<<"UpdataDish parse json failed"<<std::endl;
+    rsp.status=400;
+    return;
+  }
+  ret = dish_table->Update(dish_val);
+  if(ret==false)
+  {
+    std::cout<<"UpdataDish update to db failed!"<<std::endl;
+    rsp.status=500;
+    return;
+  }
+  rsp.status=200;
+  return;
+}
+void SelectOneDish(const httplib::Request &req,httplib::Response &rsp)
+{
+  int dish_id=std::stoi(req.matches[1]);
+  //从数据库获取指定id的菜品信息
+  Json::Value dish_val;
+  bool ret = dish_table->SelectOne(dish_id,&dish_val);
+  if(ret==false)
+  {
+    std::cout<<"SelectOneDish select from failed!"<<std::endl;
+    rsp.status=500;
+    return;
+  }
+  //获取成功，需要将dish_val中的数据对象，序列化称为json数据串，作为rsp.body 
+  Json::FastWriter writer;
+  std::string body = writer.write(dish_val);
+  //正文就是菜品信息的json数据串
+  rsp.set_content(body.c_str(),body.size(),"application/json");
+  rsp.status=200;
+  return;
+}
+void SelectAllDish(const httplib::Request &req,httplib::Response &rsp)
+{
+  Json::Value dishes_val;
+  bool ret = dish_table->SelectAll(&dishes_val);
+  if(ret == false)
+  {
+    std::cout<<"SelectAllDish select form db failed!"<<std::endl;
+    rsp.status=500;
+    return;
+  }
+  Json::FastWriter writer;
+  std::string body = writer.write(dishes_val);
+  rsp.set_content(body.c_str(),body.size(),"application/json");
+  rsp.status=200;
+  return;
+}
+void InsertOrder(const httplib::Request &req,httplib::Response &rsp)
+{
+  Json::Value order_val;
+  Json::Reader reader;
+  bool ret = reader.parse(req.body,order_val);
+  if(ret == false)
+  {
+    std::cout<<"InsertOrder parse json failed!"<<std::endl;
+    rsp.status=400;
+    return;
+  }
+  ret = order_table->Insert(order_val);
+  if(ret==false)
+  {
+    std::cout<<"InsertOrder insert data to db failed!"<<std::endl;
+    rsp.status=500;
+    return;
+  }
+  rsp.status=200;
+  return;
+}
+void DeleteOrder(const httplib::Request &req,httplib::Response &rsp)
+{
+  int order_id=std::stoi(req.matches[1]);
+  bool ret = order_table->Delete(order_id);
+  if(ret == false)
+  {
+    std::cout<<"DeleteOrder delete order failed!"<<std::endl;
+    rsp.status=500;
+    return;
+  }
+  rsp.status=200;
+  return;
+}
+void UpdataOrder(const httplib::Request &req,httplib::Response &rsp)
+{
+  Json::Value order_val;
+  Json::Reader reader;
+  bool ret = reader.parse(req.body,order_val);
+  if(ret == false)
+  {
+    std::cout<<"UpdataOrder parse json failed!"<<std::endl;
+    rsp.status=400;
+    return;
+  }
+  ret = order_table->Update(order_val);
+  if(ret == false)
+  {
+    std::cout<<"UpdataOrder uptate data to db failed!"<<std::endl;
+    rsp.status=500;
+    return;
+  }
+  rsp.status=200;
+  return;
+}
+void SeleteOneOrder(const httplib::Request &req,httplib::Response &rsp)
+{
+  int order_id=std::stoi(req.matches[1]);
+  Json::Value order_val;
+  bool ret = order_table->SelectOne(order_id,&order_val);
+  if(ret==false)
+  {
+    std::cout<<"SeleteOneOrder get order info from db failed!"<<std::endl;
+    rsp.status=500;
+    return;
+  }
+  Json::FastWriter writer;
+  std::string body = writer.write(order_val);
+  rsp.set_content(body.c_str(),body.size(),"application/json");
+  rsp.status=200;
+  return;
+}
+void SelectAllOrder(const httplib::Request &req,httplib::Response &rsp)
+{
+  Json::Value orders_val;
+  bool ret = order_table->SelectAll(&orders_val);
+  if(ret == false)
+  {
+    std::cout<<"SeleteAllOrder get order info from db failed!"<<std::endl;
+    rsp.status=500;
+    return;
+  }
+  Json::FastWriter writer;
+  std::string body=writer.write(orders_val);
+  rsp.set_content(body.c_str(),body.size(),"application/json");
+  rsp.status=200;
+  return;
+}
+
 int main()
 {
-  MYSQL* mysql = _order_sys::MysqlInit();
-  if(mysql==NULL)
-  {
-    return -1;
-  }
-  _order_sys::DishTable dish_tb(mysql);
-  _order_sys::OrderTable order_tb(mysql);
- 
-  /*
-   * 插入菜品信息
-  Json::Value dish;
-  dish["name"]="红烧肉";
-  dish["price"]=3600;
-  dish_tb.Insert(dish);
-  */
+  MYSQL *mysql=_order_sys::MysqlInit();
+  dish_table = new _order_sys::DishTable(mysql);
+  order_table = new _order_sys::OrderTable(mysql);
 
-  /*
-   * 查询单个菜品信息
-  Json::Value dish1;
-  Json::StyledWriter writer;
-  dish_tb.SelectOne(4,&dish1);
-  std::cout<<"dish:"<<writer.write(dish1)<<std::endl;
-  */
- 
-  /*
-   * 查询所有菜品信息
-  Json::Value dish2;
-  Json::StyledWriter writer2;
-  dish_tb.SelectAll(&dish2);
-  std::cout<<"dish:"<<writer2.write(dish2)<<std::endl;
-  */
+  //服务器对象
+  httplib::Server server;
+  //菜品信息的管理
+  //插入菜品请求      POST
+  server.Post("/dish",InsertDish);
+  //删除菜品请求      DELETE
+  //R"(...)"：使用原始字符串，去除字符串中特殊字符的特殊含义
+  server.Delete(R"(/dish/(\d+))",DeleteDish);
+  //更新菜品请求      PUT
+  server.Put("/dish",UpdataDish);
+  //查询单个菜品请求  GET
+  //R"(...)"：使用原始字符串，去除字符串中特殊字符的特殊含义
+  server.Get(R"(/dish/(\d+))",SelectOneDish);
+  //查询所有菜品请求  GET
+  server.Get("/dish",SelectAllDish);
   
-  /*
-   * 更新菜品信息
-  Json::Value dish3;
-  dish3["id"]=6;
-  dish3["name"]="唐僧肉";
-  dish3["price"]=6800;
-  dish_tb.Update(dish3);
-  */
-
-  /*
-   * 删除菜品信息
-  dish_tb.Delete(8);
-  */
+  //订单信息的管理
+  //插入订单请求
+  server.Post("/order",InsertOrder);
+  //删除订单请求 
+  //R"(...)"：使用原始字符串，去除字符串中特殊字符的特殊含义
+  server.Delete(R"(/order/(\d+))",DeleteOrder);
+  //更新订单请求
+  server.Put("/order",UpdataOrder);
+  //查询单个订单请求
+  //R"(...)"：使用原始字符串，去除字符串中特殊字符的特殊含义
+  server.Get(R"(/order/(\d+))",SeleteOneOrder);
+  //查询所有订单请求
+  server.Get("/order",SelectAllOrder);
   
-  //订单数据管理测试
-  Json::Value order;
-  Json::StyledWriter writer;
-
-  /*
-   * 订单插入测试
-  order["table_id"]=5;
-  order["dishes"].append(6);
-  order["dishes"].append(7);
-  order["status"]=0;
-  order_tb.Insert(order);
-   */
-
-  
-  /*
-   * 查询单个订单信息
-  Json::Value order1;
-  order_tb.SelectOne(1,&order1);
-  std::cout<<"order:"<<writer.write(order1)<<std::endl;
-  */
-
-  /*查询所有订单信息
-  Json::Value order2;
-  order_tb.SelectAll(&order2);
-  std::cout<<"order:"<<writer.write(order2)<<std::endl;
-  */
-  
-  /*更新订单信息
-  order["id"]=1;
-  order["table_id"]=3;
-  order["dishes"].append(6);
-  order["status"]=0;
-  order_tb.Update(order);
-  */
-
-  /*
-   * 删除订单信息
-  order_tb.Delete(1);
-  */ 
+  server.listen("0.0.0.0",9000);
   _order_sys::MysqlDestroy(mysql);
   return 0;
 }
